@@ -1,0 +1,54 @@
+package com.interview.entity;
+
+import com.interview.common.entity.AuditableEntity;
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "invoices")
+public class Invoice extends AuditableEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "repair_order_id", nullable = false, unique = true)
+    private RepairOrder repairOrder;
+
+    @Column(name = "invoice_number", nullable = false, length = 50, unique = true)
+    private String invoiceNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 30)
+    private InvoiceStatus status;
+
+    protected Invoice() {
+
+    }
+
+    public Invoice(RepairOrder repairOrder, String invoiceNumber, InvoiceStatus status) {
+        this.repairOrder = repairOrder;
+        this.invoiceNumber = invoiceNumber;
+        this.status = status;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public RepairOrder getRepairOrder() {
+        return repairOrder;
+    }
+
+    public String getInvoiceNumber() {
+        return invoiceNumber;
+    }
+
+    public InvoiceStatus getStatus() {
+        return status;
+    }
+
+    public void markIssued() {
+        this.status = InvoiceStatus.ISSUED;
+    }
+}
