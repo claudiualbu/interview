@@ -3,6 +3,9 @@ package com.interview.entity;
 import com.interview.common.entity.AuditableEntity;
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "invoices")
 public class Invoice extends AuditableEntity {
@@ -21,6 +24,9 @@ public class Invoice extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private InvoiceStatus status;
+
+    @OneToMany(mappedBy = "invoice", fetch = FetchType.LAZY)
+    private List<InvoiceLineItem> lineItems = new ArrayList<>();
 
     protected Invoice() {
 
@@ -46,6 +52,10 @@ public class Invoice extends AuditableEntity {
 
     public InvoiceStatus getStatus() {
         return status;
+    }
+
+    public List<InvoiceLineItem> getLineItems() {
+        return lineItems;
     }
 
     public void markIssued() {
