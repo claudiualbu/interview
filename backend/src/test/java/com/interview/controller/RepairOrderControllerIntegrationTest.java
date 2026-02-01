@@ -1,14 +1,14 @@
 package com.interview.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interview.controller.support.ApiTestClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
+
 
 import static com.interview.common.correlation.CorrelationId.HEADER;
 import static org.hamcrest.Matchers.hasItem;
@@ -30,7 +30,8 @@ class RepairOrderControllerIntegrationTest {
     @Test
     void create_get_update_delete_happyFlow() throws Exception {
         String cid = "it-ro-crud";
-        long id = createRepairOrderAndReturnId("John Doe", "VIN-123", cid);
+        ApiTestClient api = new ApiTestClient(mockMvc, objectMapper);
+        long id = api.createRepairOrderAndReturnId("John Doe", "VIN-123", cid);
 
         mockMvc.perform(get("/api/v1/repair-orders/{id}", id).header(HEADER, cid))
                 .andExpect((status().isOk()))
@@ -70,7 +71,8 @@ class RepairOrderControllerIntegrationTest {
     @Test
     void list_containsCreatedRepairOrder() throws Exception {
         String cid = "it-ro-list";
-        long id = createRepairOrderAndReturnId("Jane Doe", "VIN-ABC", cid);
+        ApiTestClient api = new ApiTestClient(mockMvc, objectMapper);
+        long id = api.createRepairOrderAndReturnId("Jane Doe", "VIN-ABC", cid);
 
         mockMvc.perform(get("/api/v1/repair-orders").header(HEADER, cid))
                 .andExpect(status().isOk())
@@ -108,22 +110,5 @@ class RepairOrderControllerIntegrationTest {
                 .andExpect(header().string(HEADER, cid))
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.correlationId").value(cid));
-    }
-
-    private long createRepairOrderAndReturnId(String customerName, String vin, String correlationId) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/v1/repair-orders")
-                .header(HEADER, correlationId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {
-                      "customerName":  "%s",
-                      "vehicleVin":  "%s"
-                    }""".formatted(customerName, vin)))
-                .andExpect(status().isCreated())
-                .andExpect(header().string(HEADER, correlationId))
-                .andReturn();
-
-        JsonNode json = objectMapper.readTree(result.getResponse().getContentAsString());
-        return json.get("id").asLong();
     }
 }
