@@ -6,6 +6,7 @@ import java.time.Instant;
 
 public record RepairOrderResponse(
         Long id,
+        Long version,
         String customerName,
         String vehicleVin,
         RepairOrderStatus status,

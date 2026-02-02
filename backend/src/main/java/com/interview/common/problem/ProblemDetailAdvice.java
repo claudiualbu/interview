@@ -7,6 +7,7 @@ import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,7 +47,9 @@ public class ProblemDetailAdvice {
         return ResponseEntity.status(404).body(pd);
     }
 
-    @ExceptionHandler({ConflictException.class, DataIntegrityViolationException.class})
+    @ExceptionHandler({ConflictException.class,
+            DataIntegrityViolationException.class,
+            ObjectOptimisticLockingFailureException.class})
     public ResponseEntity<ProblemDetail> handleConflict(RuntimeException ex) {
         ProblemDetail pd = ProblemDetail.forStatus(409);
         pd.setType(ProblemTypes.CONFLICT);

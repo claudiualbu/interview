@@ -6,6 +6,7 @@ import java.time.Instant;
 
 public record InvoiceResponse(
         Long id,
+        Long version,
         Long repairOrderId,
         String invoiceNumber,
         InvoiceStatus status,

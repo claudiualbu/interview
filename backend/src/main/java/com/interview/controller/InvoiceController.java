@@ -1,9 +1,6 @@
 package com.interview.controller;
 
-import com.interview.dto.CreateInvoiceRequest;
-import com.interview.dto.InvoiceDetailsResponse;
-import com.interview.dto.InvoiceListItemResponse;
-import com.interview.dto.InvoiceResponse;
+import com.interview.dto.*;
 import com.interview.service.InvoiceService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +25,12 @@ public class InvoiceController {
         return ResponseEntity
                 .created(URI.create("/api/v1/invoices/" + created.id()))
                 .body(created);
+    }
+
+    @PutMapping("/{id}")
+    public InvoiceResponse updateStatus(@PathVariable Long id,
+                                        @Valid @RequestBody UpdateInvoiceStatusRequest request) {
+        return service.updateStatus(id, request);
     }
 
     @GetMapping

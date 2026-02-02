@@ -7,6 +7,7 @@ import java.util.List;
 
 public record InvoiceDetailsResponse(
         Long id,
+        Long version,
         Long repairOrderId,
         String invoiceNumber,
         InvoiceStatus status,

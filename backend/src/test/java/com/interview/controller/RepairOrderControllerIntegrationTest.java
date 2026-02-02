@@ -45,6 +45,7 @@ class RepairOrderControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
+                    "version": 0,
                     "customerName": "John Doe Updated",
                     "vehicleVin": "VIN-999",
                     "status": "CLOSED"

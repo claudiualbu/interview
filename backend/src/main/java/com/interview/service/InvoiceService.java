@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -53,6 +54,20 @@ public class InvoiceService {
         return invoiceMapper.toResponse(saved);
     }
 
+    @Transactional
+    public InvoiceResponse updateStatus(Long id, UpdateInvoiceStatusRequest request) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Invoice not found"));
+
+        if (!Objects.equals(invoice.getVersion(), request.version())) {
+            throw new ConflictException("Invoice was modified by another request");
+        }
+
+        invoice.markIssued();
+
+        return invoiceMapper.toResponse(invoice);
+    }
+
     @Transactional(readOnly = true)
     public List<InvoiceListItemResponse> list() {
         return invoiceRepository.findAllByOrderByIdAsc().stream()
@@ -74,6 +89,7 @@ public class InvoiceService {
 
         return new InvoiceDetailsResponse(
                 invoice.getId(),
+                invoice.getVersion(),
                 invoice.getRepairOrder().getId(),
                 invoice.getInvoiceNumber(),
                 invoice.getStatus(),

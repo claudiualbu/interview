@@ -21,6 +21,9 @@ public class RepairOrder extends AuditableEntity {
     @Column(name = "status", nullable = false, length = 20)
     private RepairOrderStatus status;
 
+    @Version
+    private Long version;
+
     protected RepairOrder() {
 
     }
@@ -45,6 +48,10 @@ public class RepairOrder extends AuditableEntity {
 
     public RepairOrderStatus getStatus() {
         return status;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public void update(String customerName, String vehicleVin, RepairOrderStatus status) {

@@ -29,6 +29,9 @@ public class Invoice extends AuditableEntity {
     @OrderBy("id ASC")
     private List<InvoiceLineItem> lineItems = new ArrayList<>();
 
+    @Version
+    private Long version;
+
     protected Invoice() {
 
     }
@@ -57,6 +60,10 @@ public class Invoice extends AuditableEntity {
 
     public List<InvoiceLineItem> getLineItems() {
         return lineItems;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public void markIssued() {

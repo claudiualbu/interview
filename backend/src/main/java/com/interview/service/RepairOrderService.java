@@ -1,5 +1,6 @@
 package com.interview.service;
 
+import com.interview.common.exception.ConflictException;
 import com.interview.common.exception.NotFoundException;
 import com.interview.dto.CreateRepairOrderRequest;
 import com.interview.dto.RepairOrderResponse;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class RepairOrderService {
@@ -48,6 +50,10 @@ public class RepairOrderService {
     public RepairOrderResponse update(Long id, UpdateRepairOrderRequest request) {
         RepairOrder entity = repository.findById(id)
                 .orElseThrow(() -> new NotFoundException("RepairOrder Not Found"));
+
+        if (!Objects.equals(entity.getVersion(), request.version())) {
+            throw new ConflictException("RepairOrder was modified by another request");
+        }
 
         entity.update(request.customerName(), request.vehicleVin(), request.status());
         return mapper.toResponse(entity);
