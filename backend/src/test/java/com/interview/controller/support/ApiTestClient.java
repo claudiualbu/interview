@@ -37,4 +37,38 @@ public class ApiTestClient {
         JsonNode json = objectMapper.readTree(result.getResponse().getContentAsString());
         return json.get("id").asLong();
     }
+
+    public long createInvoiceAndReturnId(long repairOrderId, String cid) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/v1/invoices")
+                        .header(HEADER, cid)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            { "repairOrderId": %d }
+                            """.formatted(repairOrderId)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        JsonNode json = objectMapper.readTree(result.getResponse().getContentAsString());
+        return json.get("id").asLong();
+    }
+
+    public long createLineItemAndReturnId(long invoiceId, String description, int qty, int unitPrice, String cid)
+            throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/v1/invoices/{invoiceId}/line-items", invoiceId)
+                        .header(HEADER, cid)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "description": "%s",
+                              "quantity": %d,
+                              "unitPriceCents": %d
+                            }
+                            """.formatted(description, qty, unitPrice)))
+                .andExpect(status().isCreated())
+                .andExpect(header().string(HEADER, cid))
+                .andReturn();
+
+        JsonNode json = objectMapper.readTree(result.getResponse().getContentAsString());
+        return json.get("id").asLong();
+    }
 }
