@@ -26,6 +26,7 @@ public class Invoice extends AuditableEntity {
     private InvoiceStatus status;
 
     @OneToMany(mappedBy = "invoice", fetch = FetchType.LAZY)
+    @OrderBy("id ASC")
     private List<InvoiceLineItem> lineItems = new ArrayList<>();
 
     protected Invoice() {
