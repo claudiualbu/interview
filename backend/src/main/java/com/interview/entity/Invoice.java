@@ -4,6 +4,7 @@ import com.interview.common.entity.AuditableEntity;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Entity
@@ -25,7 +26,7 @@ public class Invoice extends AuditableEntity {
     @Column(name = "status", nullable = false, length = 30)
     private InvoiceStatus status;
 
-    @OneToMany(mappedBy = "invoice", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "invoice", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id ASC")
     private List<InvoiceLineItem> lineItems = new ArrayList<>();
 
@@ -59,7 +60,17 @@ public class Invoice extends AuditableEntity {
     }
 
     public List<InvoiceLineItem> getLineItems() {
-        return lineItems;
+        return Collections.unmodifiableList(lineItems);
+    }
+
+    public void addLineItem(InvoiceLineItem item) {
+        lineItems.add(item);
+        item.setInvoice(this);
+    }
+
+    public void removeLineItem(InvoiceLineItem item) {
+        lineItems.remove(item);
+        item.setInvoice(null);
     }
 
     public Long getVersion() {

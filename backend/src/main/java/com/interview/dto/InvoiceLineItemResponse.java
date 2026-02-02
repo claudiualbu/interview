@@ -4,6 +4,7 @@ import java.time.Instant;
 
 public record InvoiceLineItemResponse(
         Long id,
+        Long version,
         Long invoiceId,
         String description,
         int quantity,

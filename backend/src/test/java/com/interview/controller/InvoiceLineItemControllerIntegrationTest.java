@@ -69,6 +69,7 @@ class InvoiceLineItemControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {
+                              "version": 0,
                               "description": "Labor (updated)",
                               "quantity": 2,
                               "unitPriceCents": 12000

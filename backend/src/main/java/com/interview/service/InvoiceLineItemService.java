@@ -1,5 +1,6 @@
 package com.interview.service;
 
+import com.interview.common.exception.ConflictException;
 import com.interview.common.exception.NotFoundException;
 import com.interview.dto.CreateInvoiceLineItemRequest;
 import com.interview.dto.InvoiceLineItemResponse;
@@ -41,11 +42,13 @@ public class InvoiceLineItemService {
 
     @Transactional(readOnly = true)
     public List<InvoiceLineItemResponse> listByInvoice(Long invoiceId) {
-        if(!invoiceRepository.existsById(invoiceId)) {
+        List<InvoiceLineItem> items = invoiceLineItemRepository.findAllByInvoiceIdOrderByIdAsc(invoiceId);
+
+        if(items.isEmpty() && !invoiceRepository.existsById(invoiceId)) {
             throw new NotFoundException("Invoice not found");
         }
 
-        return invoiceLineItemRepository.findAllByInvoiceIdOrderByIdAsc(invoiceId).stream()
+        return items.stream()
                 .map(mapper::toResponse)
                 .toList();
     }
@@ -55,15 +58,18 @@ public class InvoiceLineItemService {
         InvoiceLineItem entity = invoiceLineItemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Line item not found"));
 
+        if (!java.util.Objects.equals(entity.getVersion(), request.version())) {
+            throw new ConflictException("Line item was modified by another request");
+        }
+
         entity.update(request.description(), request.quantity(), request.unitPriceCents());
         return mapper.toResponse(entity);
     }
 
     @Transactional
     public void delete(Long itemId) {
-        if(!invoiceLineItemRepository.existsById(itemId)) {
-            throw new NotFoundException("Line item not found");
-        }
-        invoiceLineItemRepository.deleteById(itemId);
+        InvoiceLineItem item = invoiceLineItemRepository.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Line item not found"));
+        invoiceLineItemRepository.delete(item);
     }
 }

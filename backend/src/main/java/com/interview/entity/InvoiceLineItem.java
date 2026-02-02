@@ -24,6 +24,9 @@ public class InvoiceLineItem extends AuditableEntity {
     @Column(name = "unit_price_cents", nullable = false)
     private int unitPriceCents;
 
+    @Version
+    private Long version;
+
     protected InvoiceLineItem() {
 
     }
@@ -59,9 +62,17 @@ public class InvoiceLineItem extends AuditableEntity {
         return (long) quantity * (long) unitPriceCents;
     }
 
+    public Long getVersion() {
+        return version;
+    }
+
     public void update(String description, int quantity, int unitPriceCents) {
         this.description = description;
         this.quantity = quantity;
         this.unitPriceCents = unitPriceCents;
+    }
+
+    void setInvoice(Invoice invoice) {
+        this.invoice = invoice;
     }
 }
