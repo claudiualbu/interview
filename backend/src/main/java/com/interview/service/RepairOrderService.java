@@ -7,8 +7,11 @@ import com.interview.dto.RepairOrderResponse;
 import com.interview.dto.UpdateRepairOrderRequest;
 import com.interview.entity.RepairOrder;
 import com.interview.mapper.RepairOrderMapper;
+import com.interview.repository.InvoiceRepository;
 import com.interview.repository.RepairOrderRepository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,38 +20,50 @@ import java.util.Objects;
 
 @Service
 public class RepairOrderService {
-    private final RepairOrderRepository repository;
-    private final RepairOrderMapper mapper;
+    private final RepairOrderRepository repairOrderRepository;
+    private final RepairOrderMapper repairOrderMapper;
+    private final InvoiceRepository invoiceRepository;
+    private static final Logger log = LoggerFactory.getLogger(RepairOrderService.class);
 
-    public RepairOrderService(RepairOrderRepository repository, RepairOrderMapper mapper) {
-        this.repository = repository;
-        this.mapper = mapper;
+    public RepairOrderService(RepairOrderRepository repairOrderRepository,
+                              RepairOrderMapper repairOrderMapper,
+                              InvoiceRepository invoiceRepository) {
+        this.repairOrderRepository = repairOrderRepository;
+        this.repairOrderMapper = repairOrderMapper;
+        this.invoiceRepository = invoiceRepository;
     }
 
     @Transactional
     public RepairOrderResponse create(CreateRepairOrderRequest request) {
-        RepairOrder entity = mapper.toEntity(request);
-        RepairOrder saved = repository.save(entity);
-        return mapper.toResponse(saved);
+        log.info("Creating repair order for customer={}", request.customerName());
+
+        RepairOrder entity = repairOrderMapper.toEntity(request);
+        RepairOrder saved = repairOrderRepository.save(entity);
+
+        log.info("Created repair order id={}", saved.getId());
+
+        return repairOrderMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
     public List<RepairOrderResponse> list() {
-        return repository.findAllByOrderByIdAsc().stream()
-                .map(mapper::toResponse)
+        return repairOrderRepository.findAllByOrderByIdAsc().stream()
+                .map(repairOrderMapper::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public RepairOrderResponse get(Long id) {
-        RepairOrder entity = repository.findById(id)
+        RepairOrder entity = repairOrderRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("RepairOrder Not Found"));
-        return mapper.toResponse(entity);
+        return repairOrderMapper.toResponse(entity);
     }
 
     @Transactional
     public RepairOrderResponse update(Long id, UpdateRepairOrderRequest request) {
-        RepairOrder entity = repository.findById(id)
+        log.info("Updating repair order id={}", id);
+
+        RepairOrder entity = repairOrderRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("RepairOrder Not Found"));
 
         if (!Objects.equals(entity.getVersion(), request.version())) {
@@ -56,14 +71,24 @@ public class RepairOrderService {
         }
 
         entity.update(request.customerName(), request.vehicleVin(), request.status());
-        return mapper.toResponse(entity);
+
+        log.info("Updated repair order id={}", id);
+
+        return repairOrderMapper.toResponse(entity);
     }
 
     @Transactional
     public void delete(Long id) {
-        if (!repository.existsById(id)) {
+        log.info("Deleting repair order id={}", id);
+
+        if (!repairOrderRepository.existsById(id)) {
             throw new NotFoundException("RepairOrder Not Found");
         }
-        repository.deleteById(id);
+        if (invoiceRepository.existsByRepairOrderId(id)) {
+            throw new ConflictException("Cannot delete RepairOrder with associated Invoice");
+        }
+        repairOrderRepository.deleteById(id);
+
+        log.info("Deleted repair order id={}", id);
     }
 }

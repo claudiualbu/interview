@@ -94,4 +94,69 @@ class InvoiceLineItemControllerIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].description").value("Parts"));
     }
+
+    @Test
+    void cannotAddLineItem_toIssuedInvoice_returns409() throws Exception {
+        String cid = "it-li-issued-add";
+        ApiTestClient api = new ApiTestClient(mockMvc, objectMapper);
+
+        long roId = api.createRepairOrderAndReturnId("Issued Test", "VIN-ISSUED-1", cid);
+        long invoiceId = api.createInvoiceAndReturnId(roId, cid);
+        api.createLineItem(invoiceId, "Labor", 1, 10000, cid);
+        api.issueInvoice(invoiceId, cid);
+
+        mockMvc.perform(post("/api/v1/invoices/{invoiceId}/line-items", invoiceId)
+                        .header(HEADER, cid)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "description": "New Item",
+                              "quantity": 1,
+                              "unitPriceCents": 5000
+                            }
+                            """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Cannot add line items to ISSUED invoice"));
+    }
+
+    @Test
+    void cannotUpdateLineItem_onIssuedInvoice_returns409() throws Exception {
+        String cid = "it-li-issued-update";
+        ApiTestClient api = new ApiTestClient(mockMvc, objectMapper);
+
+        long roId = api.createRepairOrderAndReturnId("Issued Test 2", "VIN-ISSUED-2", cid);
+        long invoiceId = api.createInvoiceAndReturnId(roId, cid);
+        long itemId = api.createLineItemAndReturnId(invoiceId, "Labor", 1, 10000, cid);
+        api.issueInvoice(invoiceId, cid);
+
+        mockMvc.perform(put("/api/v1/line-items/{itemId}", itemId)
+                        .header(HEADER, cid)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "version": 0,
+                              "description": "Updated",
+                              "quantity": 2,
+                              "unitPriceCents": 15000
+                            }
+                            """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Cannot modify line items of ISSUED invoice"));
+    }
+
+    @Test
+    void cannotDeleteLineItem_fromIssuedInvoice_returns409() throws Exception {
+        String cid = "it-li-issued-delete";
+        ApiTestClient api = new ApiTestClient(mockMvc, objectMapper);
+
+        long roId = api.createRepairOrderAndReturnId("Issued Test 3", "VIN-ISSUED-3", cid);
+        long invoiceId = api.createInvoiceAndReturnId(roId, cid);
+        long itemId = api.createLineItemAndReturnId(invoiceId, "Labor", 1, 10000, cid);
+        api.issueInvoice(invoiceId, cid);
+
+        mockMvc.perform(delete("/api/v1/line-items/{itemId}", itemId)
+                        .header(HEADER, cid))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Cannot delete line items from ISSUED invoice"));
+    }
 }

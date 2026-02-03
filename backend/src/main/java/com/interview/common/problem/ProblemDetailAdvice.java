@@ -3,6 +3,8 @@ package com.interview.common.problem;
 import com.interview.common.correlation.CorrelationId;
 import com.interview.common.exception.ConflictException;
 import com.interview.common.exception.NotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ProblemDetail;
@@ -17,6 +19,8 @@ import java.util.List;
 
 @RestControllerAdvice
 public class ProblemDetailAdvice {
+
+    private static final Logger log = LoggerFactory.getLogger(ProblemDetailAdvice.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
@@ -58,6 +62,19 @@ public class ProblemDetailAdvice {
         pd.setProperty("correlationId", currentCorrelationId());
 
         return ResponseEntity.status(409).body(pd);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetail> handleGeneric(Exception ex) {
+        log.error("Unhandled exception", ex);
+
+        ProblemDetail pd = ProblemDetail.forStatus(500);
+        pd.setType(ProblemTypes.INTERNAL_ERROR);
+        pd.setTitle("Internal Server Error");
+        pd.setDetail("An unexpected error occurred");
+        pd.setProperty("correlationId", currentCorrelationId());
+
+        return ResponseEntity.status(500).body(pd);
     }
 
     private ValidationError toValidationError(FieldError fieldError) {

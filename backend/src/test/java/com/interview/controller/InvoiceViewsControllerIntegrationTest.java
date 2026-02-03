@@ -93,4 +93,43 @@ class InvoiceViewsControllerIntegrationTest {
                 .andExpect(jsonPath("$.createdAt", notNullValue()))
                 .andExpect(jsonPath("$.updatedAt", notNullValue()));
     }
+
+    @Test
+    void invoiceListPaginated_includesCountAndTotal_forInvoiceWithTwoItems() throws Exception {
+        String cid = "it-inv-list-paged";
+        ApiTestClient api = new ApiTestClient(mockMvc, objectMapper);
+
+        long roId = api.createRepairOrderAndReturnId("List Paged Demo", "VIN-LIST-P-1", cid);
+        long invoiceId = api.createInvoiceAndReturnId(roId, cid);
+
+        api.createLineItem(invoiceId, "Labor", 1, 10000, cid);
+        api.createLineItem(invoiceId, "Parts", 2, 2500, cid);
+
+        MvcResult pageResult = mockMvc.perform(
+                        get("/api/v1/invoices/paginated")
+                                .param("page", "0")
+                                .param("size", "20")
+                                .header(HEADER, cid)
+                )
+                .andExpect(status().isOk())
+                .andExpect(header().string(HEADER, cid))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.number").value(0))
+                .andReturn();
+
+        JsonNode pageJson = objectMapper.readTree(pageResult.getResponse().getContentAsString());
+
+        JsonNode contentArray = pageJson.get("content");
+        JsonNode invoiceNode = api.findInvoiceById(contentArray, invoiceId);
+        if (invoiceNode == null) {
+            throw new AssertionError("Invoice not found in paginated list response. invoiceId=" + invoiceId);
+        }
+
+        org.junit.jupiter.api.Assertions.assertEquals(invoiceId, invoiceNode.get("id").asLong());
+        org.junit.jupiter.api.Assertions.assertEquals(roId, invoiceNode.get("repairOrderId").asLong());
+        org.junit.jupiter.api.Assertions.assertNotNull(invoiceNode.get("invoiceNumber"));
+        org.junit.jupiter.api.Assertions.assertEquals("DRAFT", invoiceNode.get("status").asText());
+        org.junit.jupiter.api.Assertions.assertEquals(2, invoiceNode.get("lineItemCount").asInt());
+        org.junit.jupiter.api.Assertions.assertEquals(15000L, invoiceNode.get("totalCents").asLong());
+    }
 }

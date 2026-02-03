@@ -112,4 +112,18 @@ class RepairOrderControllerIntegrationTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.correlationId").value(cid));
     }
+
+    @Test
+    void cannotDeleteRepairOrder_withInvoice_returns409() throws Exception {
+        String cid = "it-ro-delete-with-invoice";
+        ApiTestClient api = new ApiTestClient(mockMvc, objectMapper);
+
+        long roId = api.createRepairOrderAndReturnId("Delete Test", "VIN-DEL-1", cid);
+        api.createInvoiceAndReturnId(roId, cid);
+
+        mockMvc.perform(delete("/api/v1/repair-orders/{id}", roId)
+                        .header(HEADER, cid))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Cannot delete RepairOrder with associated Invoice"));
+    }
 }

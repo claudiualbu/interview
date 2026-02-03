@@ -11,6 +11,10 @@ import com.interview.mapper.InvoiceLineItemMapper;
 import com.interview.mapper.InvoiceMapper;
 import com.interview.repository.InvoiceRepository;
 import com.interview.repository.RepairOrderRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +28,7 @@ public class InvoiceService {
     private final InvoiceRepository invoiceRepository;
     private final InvoiceMapper invoiceMapper;
     private final InvoiceLineItemMapper invoiceLineItemMapper;
+    private static final Logger log = LoggerFactory.getLogger(InvoiceService.class);
 
     public InvoiceService(RepairOrderRepository repairOrderRepository,
                           InvoiceRepository invoiceRepository,
@@ -36,6 +41,8 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceResponse create(CreateInvoiceRequest request) {
+        log.info("Creating invoice for repairOrderId={}", request.repairOrderId());
+
         Long roId = request.repairOrderId();
 
         RepairOrder repairOrder = repairOrderRepository.findById(roId)
@@ -51,19 +58,35 @@ public class InvoiceService {
         Invoice invoice = invoiceMapper.toEntity(repairOrder, invoiceNumber, status);
         Invoice saved = invoiceRepository.save(invoice);
 
+        log.info("Created invoice id={} number={} for repairOrderId={}",
+                saved.getId(), saved.getInvoiceNumber(), request.repairOrderId());
+
         return invoiceMapper.toResponse(saved);
     }
 
     @Transactional
     public InvoiceResponse updateStatus(Long id, UpdateInvoiceStatusRequest request) {
-        Invoice invoice = invoiceRepository.findById(id)
+        log.info("Updating invoice status id={} to={}", id, request.status());
+
+        Invoice invoice = invoiceRepository.findByIdWithLineItems(id)
                 .orElseThrow(() -> new NotFoundException("Invoice not found"));
 
         if (!Objects.equals(invoice.getVersion(), request.version())) {
             throw new ConflictException("Invoice was modified by another request");
         }
 
-        invoice.markIssued();
+        if (invoice.getStatus() == InvoiceStatus.ISSUED) {
+            throw new ConflictException("Cannot modify ISSUED invoice");
+        }
+
+        if (request.status() == InvoiceStatus.ISSUED) {
+            if (invoice.getLineItems().isEmpty()) {
+                throw new ConflictException("Cannot issue invoice without line items");
+            }
+            invoice.markIssued();
+        }
+
+        log.info("Updated invoice id={} status={}", id, invoice.getStatus());
 
         return invoiceMapper.toResponse(invoice);
     }
@@ -73,6 +96,12 @@ public class InvoiceService {
         return invoiceRepository.findAllByOrderByIdAsc().stream()
                 .map(this::toListItem)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<InvoiceListItemResponse> list(Pageable pageable) {
+        return invoiceRepository.findAllByOrderByIdAsc(pageable)
+                .map(this::toListItem);
     }
 
     @Transactional(readOnly = true)

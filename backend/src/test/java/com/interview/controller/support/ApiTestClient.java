@@ -99,4 +99,18 @@ public class ApiTestClient {
         }
         return null;
     }
+
+    public void issueInvoice(long invoiceId, String cid) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .put("/api/v1/invoices/{id}", invoiceId)
+                        .header(HEADER, cid)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                          "version": 0,
+                          "status": "ISSUED"
+                        }
+                        """))
+                .andExpect(status().isOk());
+    }
 }
